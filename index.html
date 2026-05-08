@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#3b82f6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Tủ Truyện">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Tủ Truyện</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:root { --bg:#fff; --text:#1a1a1a; --secondary:#6b7280; --border:#e5e7eb; --card:#f9fafb; --accent:#3b82f6; }
+body.theme-sepia { --bg:#f4ecd8; --text:#5c4b37; --secondary:#8b7355; --border:#d4c5a9; --card:#ebe0c4; }
+body.theme-dark { --bg:#1a1a1a; --text:#e5e5e5; --secondary:#9ca3af; --border:#374151; --card:#262626; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; min-height: 100dvh; transition: background .2s, color .2s; overscroll-behavior: none; }
+button { background: none; border: none; color: inherit; cursor: pointer; font: inherit; }
+input { font: inherit; color: inherit; }
+.container { max-width: 1024px; margin: 0 auto; padding: 16px; padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.hidden { display: none !important; }
+
+/* Library */
+.lib-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.lib-title { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 700; }
+.icon-btn { padding: 8px; border-radius: 8px; background: var(--card); display: inline-flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; }
+
+.storage-info { font-size: 12px; color: var(--secondary); margin-bottom: 14px; padding: 8px 12px; background: var(--card); border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.storage-bar { flex: 1; height: 4px; background: var(--bg); border-radius: 2px; overflow: hidden; max-width: 160px; }
+.storage-fill { height: 100%; background: var(--accent); transition: width .3s; }
+
+.upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 28px 16px; text-align: center; cursor: pointer; background: var(--card); margin-bottom: 16px; }
+.upload-zone:active { opacity: .8; }
+.upload-zone svg { color: var(--secondary); margin-bottom: 10px; }
+.upload-zone p { font-size: 15px; }
+.upload-zone .hint { font-size: 13px; color: var(--secondary); margin-top: 4px; }
+
+.search-box { position: relative; margin-bottom: 12px; }
+.search-box input { width: 100%; padding: 11px 12px 11px 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); outline: none; font-size: 16px; }
+.search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--secondary); }
+
+.book-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 560px) { .book-grid { grid-template-columns: 1fr 1fr; } }
+
+.book-card { padding: 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--border); cursor: pointer; position: relative; display: flex; gap: 12px; -webkit-user-select: none; user-select: none; }
+.book-card:active { opacity: .85; transform: scale(.99); }
+.book-cover { width: 44px; height: 60px; background: var(--bg); border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--secondary); }
+.book-info { flex: 1; min-width: 0; }
+.book-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 32px; font-size: 15px; }
+.book-meta { font-size: 12px; color: var(--secondary); margin-top: 4px; }
+.progress-bar { margin-top: 8px; height: 4px; background: var(--bg); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); }
+.delete-btn { position: absolute; top: 10px; right: 10px; padding: 6px; border-radius: 6px; background: var(--bg); color: #ef4444; min-width: 32px; min-height: 32px; display: flex; align-items: center; justify-content: center; }
+
+.empty { text-align: center; padding: 48px 16px; color: var(--secondary); line-height: 1.6; }
+.loading { text-align: center; padding: 16px; color: var(--secondary); font-size: 14px; }
+
+/* Reader */
+.reader-header {
+  position: sticky; top: 0; z-index: 10;
+  padding: 0 4px;
+  padding-top: env(safe-area-inset-top);
+  display: flex; align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  min-height: 56px;
+}
+.reader-header .center { flex: 1; text-align: center; min-width: 0; padding: 0 4px; }
+.reader-header .book-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reader-header .chapter-pos { font-size: 11px; color: var(--secondary); margin-top: 1px; }
+.header-btn { padding: 10px; border-radius: 8px; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+.header-btn:active { background: var(--card); }
+.header-btn.active { color: #f59e0b; }
+
+.reader-content { padding: 24px 16px; padding-bottom: max(80px, env(safe-area-inset-bottom)); }
+.chapter-title { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 24px; line-height: 1.4; }
+.chapter-text p { margin-bottom: 1em; }
+
+.chapter-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
+.nav-btn { display: flex; align-items: center; gap: 6px; padding: 12px 16px; border-radius: 10px; background: var(--card); font-size: 14px; flex: 1; justify-content: center; min-height: 48px; }
+.nav-btn:active { opacity: .8; }
+.nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+/* Bottom swipe hint */
+.swipe-hint { display: flex; justify-content: center; gap: 6px; margin-top: 12px; opacity: .35; }
+.swipe-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--secondary); }
+.swipe-dot.active { background: var(--accent); transform: scale(1.3); }
+
+/* Modals */
+.modal-overlay { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.5); display: flex; align-items: flex-end; }
+@media (min-width: 768px) { .modal-overlay { align-items: center; justify-content: center; } }
+.modal { width: 100%; background: var(--bg); color: var(--text); border-radius: 20px 20px 0 0; padding: 20px; padding-bottom: max(20px, env(safe-area-inset-bottom)); max-height: 88vh; overflow-y: auto; }
+@media (min-width: 768px) { .modal { max-width: 480px; border-radius: 16px; max-height: 80vh; padding-bottom: 20px; } }
+.modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+.modal.right-panel { margin-left: auto; height: 100%; height: 100dvh; max-height: 100%; border-radius: 0; padding: 0; padding-bottom: 0; }
+@media (min-width: 768px) { .modal.right-panel { max-width: 380px; } }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.modal.right-panel .modal-header { position: sticky; top: 0; padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top)); background: var(--bg); border-bottom: 1px solid var(--border); margin: 0; z-index: 1; }
+.modal-title { font-size: 17px; font-weight: 700; }
+.close-btn { padding: 6px; min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; }
+
+.setting-group { margin-bottom: 18px; }
+.setting-label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px; color: var(--secondary); text-transform: uppercase; letter-spacing: .04em; }
+.theme-grid, .font-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.theme-btn, .font-btn { padding: 14px 8px; border-radius: 10px; font-size: 14px; font-weight: 500; border: 2px solid transparent; cursor: pointer; background: var(--card); color: var(--text); min-height: 48px; }
+.theme-btn:active, .font-btn:active { opacity: .8; }
+.theme-btn.active, .font-btn.active { border-color: var(--accent); }
+.theme-btn[data-theme="light"] { background: #fff; color: #1a1a1a; }
+.theme-btn[data-theme="sepia"] { background: #f4ecd8; color: #5c4b37; }
+.theme-btn[data-theme="dark"] { background: #1a1a1a; color: #e5e5e5; }
+
+.range-row { display: flex; align-items: center; gap: 10px; }
+.range-icon-btn { padding: 10px; border-radius: 8px; background: var(--card); min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+input[type="range"] { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; background: var(--border); border-radius: 2px; outline: none; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); cursor: pointer; border: none; }
+
+.chapter-list { padding: 6px 0; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+.chapter-item { display: block; width: 100%; text-align: left; padding: 14px 16px; border-left: 3px solid transparent; cursor: pointer; min-height: 56px; }
+.chapter-item:active { background: var(--card); }
+.chapter-item.active { background: var(--card); border-left-color: var(--accent); }
+.chapter-item .ch-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chapter-item .ch-num { font-size: 12px; color: var(--secondary); margin-top: 2px; }
+
+.action-btn { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 10px; background: var(--card); font-size: 14px; min-height: 48px; }
+
+.ic { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ic-sm { width: 16px; height: 16px; }
+.ic-lg { width: 26px; height: 26px; }
+
+.toast { position: fixed; bottom: max(24px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: #1f2937; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 14px; z-index: 100; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body class="theme-light">
+
+<!-- LIBRARY -->
+<div id="library-view" class="container">
+  <header class="lib-header">
+    <div class="lib-title">
+      <svg class="ic ic-lg" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      Tủ Truyện
+    </div>
+    <button class="icon-btn" id="theme-toggle">
+      <svg class="ic" id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </header>
+
+  <div class="storage-info" id="storage-info">
+    <span id="storage-text">Đang tải...</span>
+    <div class="storage-bar"><div class="storage-fill" id="storage-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="upload-zone" id="upload-zone">
+    <svg viewBox="0 0 24 24" style="width:36px;height:36px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <p><strong>Bấm để chọn file truyện</strong></p>
+    <p class="hint">Hỗ trợ .txt và .html</p>
+    <input type="file" id="file-input" multiple accept=".txt,.html,.htm" style="display:none">
+  </div>
+
+  <div id="loading" class="loading hidden">Đang xử lý...</div>
+
+  <div class="search-box hidden" id="search-box">
+    <svg class="ic ic-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="search-input" placeholder="Tìm truyện..." autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+
+  <div id="book-list"></div>
+</div>
+
+<!-- READER -->
+<div id="reader-view" class="hidden">
+  <header class="reader-header">
+    <button class="header-btn" id="back-btn" aria-label="Quay lại">
+      <svg class="ic" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="center">
+      <div class="book-name" id="header-book-title"></div>
+      <div class="chapter-pos" id="header-chapter-pos"></div>
+    </div>
+    <button class="header-btn" id="bookmark-btn" aria-label="Đánh dấu">
+      <svg class="ic" id="bookmark-icon" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    </button>
+    <button class="header-btn" id="chapters-btn" aria-label="Mục lục">
+      <svg class="ic" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    </button>
+    <button class="header-btn" id="settings-btn" aria-label="Cài đặt">
+      <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </header>
+
+  <main class="reader-content" id="reader-content">
+    <div id="reader-inner" style="margin:0 auto;">
+      <h2 class="chapter-title" id="chapter-title"></h2>
+      <div class="chapter-text" id="chapter-text"></div>
+      <div class="chapter-nav">
+        <button class="nav-btn" id="prev-btn">
+          <svg class="ic ic-sm" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          Trước
+        </button>
+        <button class="nav-btn" id="next-btn">
+          Sau
+          <svg class="ic ic-sm" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-modal" class="modal-overlay hidden">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h3 class="modal-title">Cài đặt</h3>
+      <button class="close-btn" data-close="settings-modal">
+        <svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="setting-group">
+      <label class="setting-label">Giao diện</label>
+      <div class="theme-grid">
+        <button class="theme-btn" data-theme="light">☀️ Sáng</button>
+        <button class="theme-btn" data-theme="sepia">📜 Vàng</button>
+        <button class="theme-btn" data-theme="dark">🌙 Tối</button>
+      </div>
+    </div>
+    <div class="setting-group">
+      <label class="setting-label">Cỡ chữ: <span id="fs-val">18</span>px</label>
+      <div class="range-row">
+        <button class="range-icon-btn" id="fs-minus"><svg class="ic ic-sm" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <input type="range" id="fs-range" min="14" max="32" value="18">
+        <button class="range-icon-btn" id="fs-plus"><svg class="ic ic-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      </div>
+    </div>
+    <div class="setting-group">
+      <label class="setting-label">Phông chữ</label>
+      <div class="font-grid">
+        <button class="font-btn" data-font="serif" style="font-family:Georgia,serif;">Serif</button>
+        <button class="font-btn" data-font="sans">Sans</button>
+        <button class="font-btn" data-font="mono" style="font-family:monospace;">Mono</button>
+      </div>
+    </div>
+    <div class="setting-group">
+      <label class="setting-label">Giãn dòng: <span id="lh-val">1.8</span></label>
+      <input type="range" id="lh-range" min="1.2" max="2.6" step="0.1" value="1.8" style="width:100%">
+    </div>
+    <div class="setting-group" style="border-top:1px solid var(--border);padding-top:16px;">
+      <label class="setting-label">Dữ liệu</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="action-btn" id="request-persist">🔒 Lưu vĩnh viễn</button>
+        <button class="action-btn" id="clear-all" style="color:#ef4444;">🗑 Xóa tất cả</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHAPTERS MODAL -->
+<div id="chapters-modal" class="modal-overlay hidden">
+  <div class="modal right-panel" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-title">Mục lục</h3>
+      <button class="close-btn" data-close="chapters-modal">
+        <svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="chapter-list" id="chapter-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== INDEXEDDB =====
+const DB_NAME = 'StoryReaderDB', DB_VER = 1;
+let db = null;
+
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, DB_VER);
+    r.onerror = () => rej(r.error);
+    r.onsuccess = () => { db = r.result; res(db); };
+    r.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('books')) d.createObjectStore('books', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('chapters')) d.createObjectStore('chapters', { keyPath: 'key' });
+      if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', { keyPath: 'key' });
+    };
+  });
+}
+function idbReq(r) { return new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+function tx(stores, mode='readonly') { return db.transaction(stores, mode); }
+const dbGetAllBooks = () => idbReq(tx(['books']).objectStore('books').getAll());
+const dbPutBook = b => idbReq(tx(['books'],'readwrite').objectStore('books').put(b));
+const dbGetChapter = (bid, i) => idbReq(tx(['chapters']).objectStore('chapters').get(bid+'_'+i));
+const dbGetMeta = async (k, d) => { const r = await idbReq(tx(['meta']).objectStore('meta').get(k)); return r ? r.value : d; };
+const dbSetMeta = (k, v) => idbReq(tx(['meta'],'readwrite').objectStore('meta').put({key:k,value:v}));
+
+async function dbPutChapters(bid, chapters) {
+  const t = tx(['chapters'],'readwrite'), s = t.objectStore('chapters');
+  for (let i = 0; i < chapters.length; i++) await idbReq(s.put({key:bid+'_'+i, title:chapters[i].title, content:chapters[i].content}));
+}
+async function dbDeleteBook(id) {
+  await idbReq(tx(['books'],'readwrite').objectStore('books').delete(id));
+  return new Promise((res, rej) => {
+    const t = tx(['chapters'],'readwrite'), s = t.objectStore('chapters');
+    const r = s.openKeyCursor();
+    r.onerror = () => rej(r.error);
+    r.onsuccess = e => { const c = e.target.result; if (c) { if (String(c.key).startsWith(id+'_')) s.delete(c.key); c.continue(); } else res(); };
+  });
+}
+async function dbGetChapterTitles(bid, total) {
+  const s = tx(['chapters']).objectStore('chapters'), out = [];
+  for (let i = 0; i < total; i++) { const r = await idbReq(s.get(bid+'_'+i)); out.push(r ? r.title : 'Chương '+(i+1)); }
+  return out;
+}
+async function dbClearAll() {
+  const t = tx(['books','chapters','meta'],'readwrite');
+  await Promise.all(['books','chapters','meta'].map(n => idbReq(t.objectStore(n).clear())));
+}
+
+// ===== STATE =====
+let books=[], currentBook=null, chapterTitles=[], currentChapterIndex=0, bookmarks={};
+let settings={theme:'light',fontSize:18,fontFamily:'serif',lineHeight:1.8,maxWidth:680};
+
+// ===== UTILS =====
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmtBytes(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';if(b<1073741824)return(b/1048576).toFixed(1)+' MB';return(b/1073741824).toFixed(2)+' GB';}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200);}
+function closeModals(){document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.add('hidden'));}
+
+// ===== STORAGE INFO =====
+async function updateStorageInfo() {
+  const el=document.getElementById('storage-text'), bar=document.getElementById('storage-fill');
+  if (!navigator.storage||!navigator.storage.estimate){el.textContent=books.length+' truyện';return;}
+  try {
+    const est=await navigator.storage.estimate();
+    const used=est.usage||0, quota=est.quota||0, pct=quota>0?Math.min(100,(used/quota)*100):0;
+    const persisted=navigator.storage.persisted?await navigator.storage.persisted():false;
+    el.textContent=`${books.length} truyện · ${fmtBytes(used)}/${fmtBytes(quota)}${persisted?' 🔒':''}`;
+    bar.style.width=pct+'%';
+    bar.style.background=pct>80?'#ef4444':pct>60?'#f59e0b':'var(--accent)';
+  } catch(e){el.textContent=books.length+' truyện';}
+}
+
+// ===== PARSER =====
+function parseChapters(text) {
+  const re=/^(?:Chương|Chapter|CHƯƠNG|CHAPTER|Hồi|HỒI|Phần|PHẦN|Quyển|QUYỂN|Tập|TẬP)[\s\d]+[:.\-–—\s]?.*$/i;
+  const lines=text.split('\n'); const result=[]; let cur={title:'Mở đầu',content:[]};
+  for(const line of lines){const tr=line.trim();if(re.test(tr)&&tr.length<200&&tr.length>0){if(cur.content.join('').trim().length>0)result.push({title:cur.title,content:cur.content.join('\n').trim()});cur={title:tr,content:[]};}else cur.content.push(line);}
+  if(cur.content.join('').trim().length>0)result.push({title:cur.title,content:cur.content.join('\n').trim()});
+  if(result.length<=1&&text.length>5000){
+    const paras=text.split(/\n\s*\n/);const chunks=[];let chunk=[],size=0,num=1;
+    for(const p of paras){chunk.push(p);size+=p.length;if(size>=4000){chunks.push({title:'Phần '+num,content:chunk.join('\n\n')});num++;chunk=[];size=0;}}
+    if(chunk.length>0)chunks.push({title:'Phần '+num,content:chunk.join('\n\n')});
+    return chunks.length>0?chunks:result;
+  }
+  return result.length>0?result:[{title:'Toàn bộ',content:text}];
+}
+
+// ===== FILE UPLOAD =====
+function readFile(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(f,'UTF-8');});}
+
+async function handleFiles(fl) {
+  const files=Array.from(fl); if(!files.length)return;
+  const loading=document.getElementById('loading');
+  loading.classList.remove('hidden');
+  for(const file of files){
+    try{
+      loading.textContent='Đang xử lý: '+file.name;
+      let text=await readFile(file);
+      if(/\.html?$/i.test(file.name)){const d=document.createElement('div');d.innerHTML=text;text=d.textContent||d.innerText||'';}
+      const parsed=parseChapters(text);
+      const id='b_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+      const book={id,title:file.name.replace(/\.(txt|html?|epub)$/i,''),fileName:file.name,totalChapters:parsed.length,currentChapter:0,lastRead:Date.now(),createdAt:Date.now(),size:file.size};
+      await dbPutBook(book);
+      await dbPutChapters(id,parsed);
+      books.unshift(book);
+      toast('Đã thêm: '+book.title);
+    }catch(err){
+      console.error(err);
+      if(err.name==='QuotaExceededError')toast('Bộ nhớ đầy! Hãy xóa bớt truyện.');
+      else toast('Không đọc được: '+file.name);
+    }
+  }
+  loading.classList.add('hidden');
+  loading.textContent='Đang xử lý...';
+  renderLib();
+  updateStorageInfo();
+}
+
+// ===== LIBRARY =====
+function renderLib() {
+  const list=document.getElementById('book-list'),sb=document.getElementById('search-box');
+  const term=(document.getElementById('search-input').value||'').toLowerCase();
+  if(books.length>0)sb.classList.remove('hidden');else sb.classList.add('hidden');
+  const f=books.filter(b=>b.title.toLowerCase().includes(term));
+  if(f.length===0){list.innerHTML='<div class="empty">'+(books.length===0?'📚<br>Chưa có truyện nào<br><small>Bấm vào ô trên để import file</small>':'Không tìm thấy truyện')+'</div>';return;}
+  list.innerHTML='<div class="book-grid">'+f.map(b=>{
+    const p=b.totalChapters>0?Math.round(((b.currentChapter||0)/b.totalChapters)*100):0;
+    const sz=b.size?' · '+fmtBytes(b.size):'';
+    return `<div class="book-card" data-id="${b.id}"><div class="book-cover"><svg class="ic ic-lg" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div><div class="book-info"><div class="book-title">${esc(b.title)}</div><div class="book-meta">${b.totalChapters} chương · ${p}%${sz}</div><div class="progress-bar"><div class="progress-fill" style="width:${p}%"></div></div></div><button class="delete-btn" data-del="${b.id}"><svg class="ic ic-sm" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div>`;
+  }).join('')+'</div>';
+  list.querySelectorAll('.book-card').forEach(c=>c.addEventListener('click',e=>{if(e.target.closest('[data-del]'))return;const b=books.find(x=>x.id===c.dataset.id);if(b)openBook(b);}));
+  list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',async e=>{e.stopPropagation();const id=b.dataset.del;if(confirm('Xóa truyện này?')){await dbDeleteBook(id);books=books.filter(x=>x.id!==id);renderLib();updateStorageInfo();toast('Đã xóa');}}));
+}
+
+// ===== READER =====
+async function openBook(b) {
+  currentBook=b; currentChapterIndex=b.currentChapter||0;
+  b.lastRead=Date.now(); await dbPutBook(b);
+  document.getElementById('library-view').classList.add('hidden');
+  document.getElementById('reader-view').classList.remove('hidden');
+  document.getElementById('header-book-title').textContent=b.title;
+  chapterTitles=[];
+  applySettings();
+  await renderChapter();
+}
+
+async function renderChapter() {
+  const ch=await dbGetChapter(currentBook.id,currentChapterIndex); if(!ch)return;
+  document.getElementById('header-chapter-pos').textContent=(currentChapterIndex+1)+' / '+currentBook.totalChapters;
+  document.getElementById('chapter-title').textContent=ch.title;
+  document.getElementById('chapter-text').innerHTML=ch.content.split('\n').filter(p=>p.trim()).map(p=>'<p>'+esc(p)+'</p>').join('');
+  document.getElementById('prev-btn').disabled=currentChapterIndex===0;
+  document.getElementById('next-btn').disabled=currentChapterIndex===currentBook.totalChapters-1;
+  const bm=bookmarks[currentBook.id+'_'+currentChapterIndex];
+  document.getElementById('bookmark-btn').classList.toggle('active',!!bm);
+  document.getElementById('bookmark-icon').setAttribute('fill',bm?'currentColor':'none');
+  window.scrollTo(0,0);
+}
+
+async function goTo(i) {
+  if(i<0||i>=currentBook.totalChapters)return;
+  currentChapterIndex=i;
+  currentBook.currentChapter=i; currentBook.lastRead=Date.now(); await dbPutBook(currentBook);
+  await renderChapter(); closeModals();
+}
+
+function back(){document.getElementById('reader-view').classList.add('hidden');document.getElementById('library-view').classList.remove('hidden');currentBook=null;renderLib();updateStorageInfo();}
+
+async function toggleBm(){
+  if(!currentBook)return;
+  const k=currentBook.id+'_'+currentChapterIndex;
+  if(bookmarks[k])delete bookmarks[k];else bookmarks[k]={chapterIndex:currentChapterIndex,ts:Date.now()};
+  await dbSetMeta('bookmarks',bookmarks);
+  renderChapter();
+  toast(bookmarks[k]?'Đã đánh dấu':'Đã bỏ đánh dấu');
+}
+
+// ===== SETTINGS =====
+function applySettings(){
+  document.body.className='theme-'+settings.theme;
+  const inner=document.getElementById('reader-inner');
+  if(inner){
+    inner.style.fontSize=settings.fontSize+'px';
+    inner.style.lineHeight=settings.lineHeight;
+    inner.style.maxWidth=settings.maxWidth+'px';
+    const fonts={serif:'Georgia,"Times New Roman",serif',sans:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',mono:'"Courier New",Consolas,monospace'};
+    inner.style.fontFamily=fonts[settings.fontFamily];
+  }
+  document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===settings.theme));
+  document.querySelectorAll('.font-btn').forEach(b=>b.classList.toggle('active',b.dataset.font===settings.fontFamily));
+  document.getElementById('fs-range').value=settings.fontSize;
+  document.getElementById('fs-val').textContent=settings.fontSize;
+  document.getElementById('lh-range').value=settings.lineHeight;
+  document.getElementById('lh-val').textContent=Number(settings.lineHeight).toFixed(1);
+  const ic=document.getElementById('theme-icon');
+  if(settings.theme==='dark')ic.innerHTML='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  else ic.innerHTML='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+}
+async function saveSettings(){await dbSetMeta('settings',settings);}
+
+// ===== CHAPTERS LIST =====
+async function openChaptersModal(){
+  const list=document.getElementById('chapter-list');
+  list.innerHTML='<div class="empty">Đang tải...</div>';
+  document.getElementById('chapters-modal').classList.remove('hidden');
+  if(chapterTitles.length!==currentBook.totalChapters)chapterTitles=await dbGetChapterTitles(currentBook.id,currentBook.totalChapters);
+  list.innerHTML=chapterTitles.map((title,i)=>`<button class="chapter-item ${i===currentChapterIndex?'active':''}" data-idx="${i}"><div class="ch-title">${esc(title)}</div><div class="ch-num">Chương ${i+1}</div></button>`).join('');
+  list.querySelectorAll('.chapter-item').forEach(item=>item.addEventListener('click',()=>goTo(parseInt(item.dataset.idx))));
+  // Scroll active into view
+  const active=list.querySelector('.active');
+  if(active)setTimeout(()=>active.scrollIntoView({block:'center'}),100);
+}
+
+// ===== SWIPE NAVIGATION =====
+function bindSwipe(el){
+  let startX=0,startY=0,moved=false;
+  el.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;startY=e.touches[0].clientY;moved=false;},{passive:true});
+  el.addEventListener('touchmove',e=>{const dx=Math.abs(e.touches[0].clientX-startX),dy=Math.abs(e.touches[0].clientY-startY);if(dx>dy&&dx>10)moved=true;},{passive:true});
+  el.addEventListener('touchend',e=>{
+    if(!moved)return;
+    const dx=e.changedTouches[0].clientX-startX;
+    if(Math.abs(dx)>60){
+      if(dx<0)goTo(currentChapterIndex+1);
+      else goTo(currentChapterIndex-1);
+    }
+  });
+}
+
+// ===== INIT =====
+async function init(){
+  try{await openDB();}catch(e){alert('Trình duyệt không hỗ trợ IndexedDB');return;}
+  const s=await dbGetMeta('settings',null); if(s)settings={...settings,...s};
+  bookmarks=await dbGetMeta('bookmarks',{})||{};
+  books=await dbGetAllBooks();
+  books.sort((a,b)=>b.lastRead-a.lastRead);
+  applySettings(); renderLib(); updateStorageInfo();
+
+  // Upload
+  const uz=document.getElementById('upload-zone'),fi=document.getElementById('file-input');
+  uz.addEventListener('click',()=>fi.click());
+  uz.addEventListener('dragover',e=>{e.preventDefault();uz.style.borderColor='var(--accent)';});
+  uz.addEventListener('dragleave',()=>uz.style.borderColor='');
+  uz.addEventListener('drop',e=>{e.preventDefault();uz.style.borderColor='';handleFiles(e.dataTransfer.files);});
+  fi.addEventListener('change',e=>{handleFiles(e.target.files);fi.value='';});
+
+  // Search
+  document.getElementById('search-input').addEventListener('input',renderLib);
+
+  // Theme
+  document.getElementById('theme-toggle').addEventListener('click',()=>{settings.theme=settings.theme==='dark'?'light':'dark';saveSettings();applySettings();});
+
+  // Reader controls
+  document.getElementById('back-btn').addEventListener('click',back);
+  document.getElementById('bookmark-btn').addEventListener('click',toggleBm);
+  document.getElementById('chapters-btn').addEventListener('click',openChaptersModal);
+  document.getElementById('settings-btn').addEventListener('click',()=>document.getElementById('settings-modal').classList.remove('hidden'));
+  document.getElementById('prev-btn').addEventListener('click',()=>goTo(currentChapterIndex-1));
+  document.getElementById('next-btn').addEventListener('click',()=>goTo(currentChapterIndex+1));
+
+  // Modals
+  document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.add('hidden');}));
+  document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>document.getElementById(b.dataset.close).classList.add('hidden')));
+
+  // Settings controls
+  document.querySelectorAll('.theme-btn').forEach(b=>b.addEventListener('click',()=>{settings.theme=b.dataset.theme;saveSettings();applySettings();}));
+  document.querySelectorAll('.font-btn').forEach(b=>b.addEventListener('click',()=>{settings.fontFamily=b.dataset.font;saveSettings();applySettings();}));
+  document.getElementById('fs-range').addEventListener('input',e=>{settings.fontSize=+e.target.value;saveSettings();applySettings();});
+  document.getElementById('fs-minus').addEventListener('click',()=>{settings.fontSize=Math.max(14,settings.fontSize-1);saveSettings();applySettings();});
+  document.getElementById('fs-plus').addEventListener('click',()=>{settings.fontSize=Math.min(32,settings.fontSize+1);saveSettings();applySettings();});
+  document.getElementById('lh-range').addEventListener('input',e=>{settings.lineHeight=+e.target.value;saveSettings();applySettings();});
+
+  // Persistent storage
+  document.getElementById('request-persist').addEventListener('click',async()=>{
+    if(navigator.storage&&navigator.storage.persist){const g=await navigator.storage.persist();toast(g?'Đã bật lưu vĩnh viễn 🔒':'Trình duyệt từ chối. Hãy thêm trang vào bookmark');updateStorageInfo();}
+    else toast('Trình duyệt không hỗ trợ');
+  });
+  document.getElementById('clear-all').addEventListener('click',async()=>{
+    if(!confirm('Xóa TẤT CẢ dữ liệu?'))return;
+    await dbClearAll();books=[];bookmarks={};renderLib();updateStorageInfo();closeModals();toast('Đã xóa toàn bộ');
+  });
+
+  // Swipe
+  bindSwipe(document.getElementById('reader-content'));
+
+  // Keyboard
+  document.addEventListener('keydown',e=>{
+    if(document.getElementById('reader-view').classList.contains('hidden'))return;
+    if(document.querySelectorAll('.modal-overlay:not(.hidden)').length>0)return;
+    if(e.key==='ArrowLeft')goTo(currentChapterIndex-1);
+    if(e.key==='ArrowRight')goTo(currentChapterIndex+1);
+  });
+}
+
+// ===== SERVICE WORKER =====
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+
+init();
+</script>
+</body>
+</html>
